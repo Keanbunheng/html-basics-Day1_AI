@@ -1,0 +1,242 @@
+{
+  "monthlyBudget": 2400,
+  "transactions": [
+    {
+      "name": "Monthly salary",
+      "category": "Income",
+      "date": "2026-06-01",
+      "amount": 3980,
+      "month": "Jun"
+    },
+    {
+      "name": "Apartment rent",
+      "category": "Housing",
+      "date": "2026-06-02",
+      "amount": -820,
+      "month": "Jun"
+    },
+    {
+      "name": "Market groceries",
+      "category": "Food & dining",
+      "date": "2026-06-08",
+      "amount": -300,
+      "month": "Jun"
+    },
+    {
+      "name": "Transit and fuel",
+      "category": "Transport",
+      "date": "2026-06-14",
+      "amount": -190,
+      "month": "Jun"
+    },
+    {
+      "name": "Monthly salary",
+      "category": "Income",
+      "date": "2026-07-01",
+      "amount": 4800,
+      "month": "Jul"
+    },
+    {
+      "name": "Apartment rent",
+      "category": "Housing",
+      "date": "2026-07-02",
+      "amount": -820,
+      "month": "Jul"
+    },
+    {
+      "name": "Groceries and dining",
+      "category": "Food & dining",
+      "date": "2026-07-10",
+      "amount": -450,
+      "month": "Jul"
+    },
+    {
+      "name": "Transit and fuel",
+      "category": "Transport",
+      "date": "2026-07-16",
+      "amount": -230,
+      "month": "Jul"
+    },
+    {
+      "name": "Monthly salary",
+      "category": "Income",
+      "date": "2026-08-01",
+      "amount": 3600,
+      "month": "Aug"
+    },
+    {
+      "name": "Apartment rent",
+      "category": "Housing",
+      "date": "2026-08-02",
+      "amount": -820,
+      "month": "Aug"
+    },
+    {
+      "name": "Groceries and dining",
+      "category": "Food & dining",
+      "date": "2026-08-12",
+      "amount": -570,
+      "month": "Aug"
+    },
+    {
+      "name": "Transit and fuel",
+      "category": "Transport",
+      "date": "2026-08-18",
+      "amount": -300,
+      "month": "Aug"
+    },
+    {
+      "name": "Monthly salary",
+      "category": "Income",
+      "date": "2026-09-01",
+      "amount": 4470,
+      "month": "Sep"
+    },
+    {
+      "name": "Apartment rent",
+      "category": "Housing",
+      "date": "2026-09-02",
+      "amount": -820,
+      "month": "Sep"
+    },
+    {
+      "name": "Groceries and dining",
+      "category": "Food & dining",
+      "date": "2026-09-09",
+      "amount": -500,
+      "month": "Sep"
+    },
+    {
+      "name": "Transit and fuel",
+      "category": "Transport",
+      "date": "2026-09-15",
+      "amount": -270,
+      "month": "Sep"
+    },
+    {
+      "name": "Monthly salary",
+      "category": "Income",
+      "date": "2026-10-01",
+      "amount": 4250,
+      "month": "Oct"
+    },
+    {
+      "name": "Apartment rent",
+      "category": "Housing",
+      "date": "2026-10-02",
+      "amount": -820,
+      "month": "Oct"
+    },
+    {
+      "name": "Groceries and dining",
+      "category": "Food & dining",
+      "date": "2026-10-11",
+      "amount": -400,
+      "month": "Oct"
+    },
+    {
+      "name": "Transit and fuel",
+      "category": "Transport",
+      "date": "2026-10-17",
+      "amount": -220,
+      "month": "Oct"
+    },
+    {
+      "name": "Monthly salary",
+      "category": "Income",
+      "date": "2026-11-01",
+      "amount": 5240,
+      "month": "Nov"
+    },
+    {
+      "name": "Apartment rent",
+      "category": "Housing",
+      "date": "2026-11-02",
+      "amount": -820,
+      "month": "Nov"
+    },
+    {
+      "name": "Market groceries",
+      "category": "Food & dining",
+      "date": "2026-11-04",
+      "amount": -456.8,
+      "month": "Nov"
+    },
+    {
+      "name": "Monthly transit pass",
+      "category": "Transport",
+      "date": "2026-11-05",
+      "amount": -285.5,
+      "month": "Nov"
+    },
+    {
+      "name": "Shopping",
+      "category": "Shopping",
+      "date": "2026-11-06",
+      "amount": -180,
+      "month": "Nov"
+    },
+    {
+      "name": "Electricity bill",
+      "category": "Utilities",
+      "date": "2026-11-08",
+      "amount": -100,
+      "month": "Nov"
+    }
+  ],
+  "categoryBudgets": [
+    {
+      "category": "Housing",
+      "limit": 1050,
+      "color": "sky"
+    },
+    {
+      "category": "Food & dining",
+      "limit": 600,
+      "color": "indigo"
+    },
+    {
+      "category": "Transport",
+      "limit": 350,
+      "color": "amber"
+    },
+    {
+      "category": "Utilities & subscriptions",
+      "limit": 400,
+      "color": "emerald",
+      "matches": [
+        "Utilities"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "name": "Housing",
+      "color": "sky-500"
+    },
+    {
+      "name": "Food & dining",
+      "color": "indigo-400"
+    },
+    {
+      "name": "Transport",
+      "color": "amber-400"
+    },
+    {
+      "name": "Shopping",
+      "color": "emerald-400"
+    },
+    {
+      "name": "Utilities",
+      "color": "violet-400"
+    },
+    {
+      "name": "Other",
+      "color": "slate-400"
+    }
+  ],
+  "accountSummary": {
+    "balance": 12486.5,
+    "monthlyChangePercent": 4.8
+  }
+}

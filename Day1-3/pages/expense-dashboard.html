@@ -1,0 +1,1773 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8fafc" />
+    <meta
+      name="description"
+      content="Track your spending, budgets, and monthly finances."
+    />
+    <title>Overview · Ledger</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        background:
+          radial-gradient(
+            ellipse at 75% 4%,
+            rgba(191, 219, 254, 0.3),
+            transparent 34%
+          ),
+          #f8fafc;
+      }
+
+      .dashboard-dots {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image: radial-gradient(
+          circle,
+          rgba(100, 116, 139, 0.19) 2px,
+          transparent 2.5px
+        );
+        background-size: 30px 30px;
+        mask-image: linear-gradient(
+          115deg,
+          #000 0%,
+          transparent 28%,
+          transparent 70%,
+          #000 100%
+        );
+      }
+
+      .cash-flow-chart [data-tooltip] {
+        position: relative;
+        isolation: isolate;
+        cursor: pointer;
+        transform-origin: center bottom;
+        transition:
+          transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          filter 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+          background-color 420ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .category-progress {
+        transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .cash-flow-chart [data-series] {
+        transition:
+          opacity 180ms ease,
+          filter 180ms ease;
+      }
+
+      .cash-flow-chart > [data-month].is-selected [data-tooltip] {
+        opacity: 0.82;
+        transform: scaleY(1.08);
+      }
+
+      .cash-flow-chart > [data-month].is-selected [data-series="expenses"] {
+        opacity: 0.82;
+        background-color: #4f46e5;
+        filter: drop-shadow(0 3px 5px rgba(79, 70, 229, 0.32));
+      }
+
+      .cash-flow-chart [data-tooltip]:hover,
+      .cash-flow-chart [data-tooltip]:focus-visible {
+        z-index: 2;
+        filter: brightness(1.08) drop-shadow(0 4px 5px rgba(79, 70, 229, 0.22));
+        transform: translateY(-4px) scaleX(1.08);
+      }
+
+      .cash-flow-chart > [data-month].is-selected [data-tooltip]:hover,
+      .cash-flow-chart > [data-month].is-selected [data-tooltip]:focus-visible {
+        transform: translateY(-4px) scale(1.08, 1.08);
+      }
+
+      /* Treat the income and expense bars as one month group on hover/focus. */
+      .cash-flow-chart > [data-month]:has([data-tooltip]:hover) [data-tooltip],
+      .cash-flow-chart > [data-month]:focus-within [data-tooltip] {
+        z-index: 2;
+        filter: brightness(1.08) drop-shadow(0 4px 5px rgba(79, 70, 229, 0.22));
+        transform: translateY(-4px) scale(1.06);
+      }
+
+      .cash-flow-chart
+        > [data-month].is-selected:has([data-tooltip]:hover)
+        [data-tooltip],
+      .cash-flow-chart > [data-month].is-selected:focus-within [data-tooltip] {
+        transform: translateY(-4px) scale(1.08, 1.08);
+      }
+
+      .cash-flow-chart [data-tooltip]::after {
+        position: absolute;
+        z-index: 20;
+        left: 50%;
+        bottom: calc(100% + 10px);
+        width: max-content;
+        max-width: 112px;
+        padding: 8px 10px;
+        border: 1px solid rgba(165, 180, 252, 0.35);
+        border-radius: 10px;
+        background: linear-gradient(135deg, #0f172a, #312e81 70%, #4f46e5);
+        box-shadow: 0 8px 22px rgba(30, 41, 59, 0.25);
+        color: #fff;
+        content: attr(data-tooltip);
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.45;
+        text-align: center;
+        white-space: pre-line;
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, 4px) scale(0.96);
+        transition:
+          opacity 150ms ease,
+          transform 150ms ease;
+      }
+
+      .cash-flow-chart [data-tooltip]::before {
+        position: absolute;
+        z-index: 19;
+        left: 50%;
+        bottom: calc(100% + 6px);
+        width: 8px;
+        height: 8px;
+        background: #312e81;
+        content: "";
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, 4px) rotate(45deg);
+        transition:
+          opacity 150ms ease,
+          transform 150ms ease;
+      }
+
+      .cash-flow-chart [data-tooltip]:hover::after,
+      .cash-flow-chart [data-tooltip]:focus-visible::after {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+
+      .cash-flow-chart [data-tooltip]:hover::before,
+      .cash-flow-chart [data-tooltip]:focus-visible::before {
+        opacity: 1;
+        transform: translate(-50%, 0) rotate(45deg);
+      }
+
+      .cash-flow-chart [data-tooltip]:focus-visible {
+        outline: 2px solid #6366f1;
+        outline-offset: 3px;
+      }
+
+      @keyframes toast-enter {
+        from {
+          opacity: 0;
+          transform: translateY(12px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .toast-enter {
+        animation: toast-enter 220ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+      }
+
+      @keyframes page-spinner-rotate {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .page-spinner-ring {
+        animation: page-spinner-rotate 750ms linear infinite;
+      }
+
+      .savings-chart-line {
+        stroke-dasharray: 1400;
+        stroke-dashoffset: 1400;
+        animation: savings-chart-draw 700ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+      }
+
+      @keyframes savings-chart-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .savings-chart-line {
+          animation: none;
+          stroke-dashoffset: 0;
+        }
+      }
+
+      #profile-dialog,
+      #expense-dialog,
+      #savings-goal-dialog,
+      #goal-cancel-dialog {
+        position: fixed;
+        inset: auto;
+        top: 50%;
+        left: 50%;
+        margin: 0;
+        translate: none;
+        transform: translate(-50%, -50%);
+      }
+
+      #profile-dialog[open],
+      #expense-dialog[open],
+      #savings-goal-dialog[open],
+      #goal-cancel-dialog[open] {
+        animation: dialog-pop-in 220ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
+      }
+
+      #profile-dialog::backdrop,
+      #expense-dialog::backdrop,
+      #savings-goal-dialog::backdrop,
+      #goal-cancel-dialog::backdrop {
+        background: rgba(2, 6, 23, 0.34);
+        backdrop-filter: blur(2px);
+      }
+
+      #profile-dialog[open]::backdrop,
+      #expense-dialog[open]::backdrop,
+      #savings-goal-dialog[open]::backdrop,
+      #goal-cancel-dialog[open]::backdrop {
+        animation: dialog-backdrop-in 180ms ease-out both;
+      }
+
+      @keyframes dialog-pop-in {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -46%) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+
+      @keyframes dialog-backdrop-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-full font-sans text-slate-800 antialiased">
+    <div class="dashboard-dots" aria-hidden="true"></div>
+    <div
+      id="sidebar-overlay"
+      class="fixed inset-0 z-30 hidden bg-slate-950/30 backdrop-blur-[2px] lg:hidden"
+      aria-hidden="true"
+    ></div>
+    <div
+      id="page-loader"
+      class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-950/10 backdrop-blur-[1px]"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading page"
+    >
+      <div
+        class="flex items-center gap-3 rounded-2xl border border-white/70 bg-white/95 px-5 py-4 text-sm font-semibold text-slate-700 shadow-xl shadow-slate-900/10"
+      >
+        <span
+          class="page-spinner-ring h-6 w-6 rounded-full border-[3px] border-sky-100 border-t-sky-600"
+          aria-hidden="true"
+        ></span>
+        <span>Loading page...</span>
+      </div>
+    </div>
+
+    <aside
+      id="sidebar"
+      class="fixed inset-y-0 left-0 z-40 flex w-[260px] -translate-x-full flex-col overflow-y-auto border-r border-slate-200/80 bg-white/95 px-5 py-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0"
+      aria-label="Main navigation"
+    >
+      <a href="#overview" class="mb-9 flex items-center gap-3 px-2">
+        <span
+          class="grid h-10 w-10 grid-cols-2 gap-1 rounded-xl border border-sky-100 bg-sky-50 p-2"
+          aria-hidden="true"
+        >
+          <span class="rounded-sm bg-sky-400"></span>
+          <span class="rounded-sm bg-blue-500/80"></span>
+          <span class="rounded-sm bg-blue-600/70"></span>
+          <span class="rounded-sm bg-indigo-400"></span>
+        </span>
+        <span>
+          <span class="block text-base font-bold tracking-tight text-slate-900"
+            >Ledger</span
+          >
+          <span class="block text-[11px] text-slate-400">PERSONAL FINANCE</span>
+        </span>
+      </a>
+
+      <p
+        class="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400"
+      >
+        Workspace
+      </p>
+      <nav class="space-y-1" aria-label="Workspace">
+        <a
+          href="#overview"
+          class="workspace-nav-link flex items-center gap-3 rounded-xl bg-sky-50 px-3 py-2.5 text-sm font-semibold text-sky-700 transition"
+          aria-current="page"
+        >
+          <svg
+            class="h-[18px] w-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect
+              x="3.5"
+              y="3.5"
+              width="7"
+              height="7"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.7"
+            />
+            <rect
+              x="13.5"
+              y="3.5"
+              width="7"
+              height="7"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.7"
+            />
+            <rect
+              x="3.5"
+              y="13.5"
+              width="7"
+              height="7"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.7"
+            />
+            <rect
+              x="13.5"
+              y="13.5"
+              width="7"
+              height="7"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.7"
+            />
+          </svg>
+          Overview
+        </a>
+        <a
+          href="#transactions-page"
+          class="workspace-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <svg
+            class="h-[18px] w-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M5 7h14M5 12h14M5 17h14"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
+            <circle cx="3.5" cy="7" r=".7" fill="currentColor" />
+            <circle cx="3.5" cy="12" r=".7" fill="currentColor" />
+            <circle cx="3.5" cy="17" r=".7" fill="currentColor" />
+          </svg>
+          Transactions
+        </a>
+        <a
+          href="#budgets-page"
+          class="workspace-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <svg
+            class="h-[18px] w-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M4 19V5m0 14h16"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
+            <path
+              d="m7 15 3-4 3 2 5-6"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Budgets
+        </a>
+        <a
+          href="#savings-goal-page"
+          class="workspace-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7" />
+            <path d="M12 7.5v9m3-6.8c-.5-.8-1.5-1.2-3-1.2-1.6 0-2.6.7-2.6 1.7 0 2.7 5.6 1 5.6 3.8 0 1.1-1.1 1.9-2.9 1.9-1.4 0-2.5-.5-3.1-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          Savings Goal
+        </a>
+        <a
+          href="#about-page"
+          class="workspace-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <svg
+            class="h-[18px] w-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="8"
+              r="3.2"
+              stroke="currentColor"
+              stroke-width="1.7"
+            />
+            <path
+              d="M5.5 20c.8-3.2 3.1-5 6.5-5s5.7 1.8 6.5 5"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
+          </svg>
+          About Us
+        </a>
+        <a
+          href="#reports-page"
+          class="workspace-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+        >
+          <svg
+            class="h-[18px] w-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M6 3.75h8l4 4v12.5H6V3.75Z"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M14 4v4h4M9 12h6M9 15.5h6"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
+          </svg>
+          Reports
+        </a>
+      </nav>
+
+      <div class="mt-auto">
+        <div
+          class="mb-5 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-indigo-50 p-4"
+        >
+          <div
+            class="mb-2 flex items-center gap-2 text-xs font-semibold text-sky-800"
+          >
+            <span class="h-2 w-2 rounded-full bg-sky-500"></span>
+            Monthly budget
+          </div>
+          <p
+            id="sidebar-budget-total"
+            class="text-xl font-bold tracking-tight text-slate-900"
+          ></p>
+          <p id="sidebar-budget-usage" class="mt-1 text-xs text-slate-500">
+            Loading budget data…
+          </p>
+          <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-white">
+            <div
+              id="sidebar-budget-progress"
+              class="h-full w-0 rounded-full bg-sky-500 transition-all duration-500"
+            ></div>
+          </div>
+          <p
+            id="sidebar-budget-warning"
+            class="mt-2 hidden text-xs font-semibold text-amber-700"
+            aria-live="polite"
+          ></p>
+        </div>
+        <button
+          id="account-menu-toggle"
+          type="button"
+          class="flex w-full items-center gap-3 rounded-xl border-t border-slate-100 px-2 pt-4 text-left"
+          aria-label="Open account menu"
+          aria-expanded="false"
+          aria-controls="account-menu"
+        >
+          <span
+            class="grid h-9 w-9 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700"
+            >KB</span
+          >
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm font-semibold text-slate-800"
+              >Sleep</span
+            >
+            <span class="block text-xs text-slate-400">Personal account</span>
+          </span>
+          <svg
+            class="h-4 w-4 text-slate-400"
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 4 14 10 8 16"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <div
+      id="account-menu"
+      class="fixed z-[60] hidden w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/15"
+    >
+      <div class="mb-3 border-b border-slate-100 pb-3">
+        <p class="text-sm font-semibold text-slate-900">Sleep</p>
+        <p class="mt-0.5 break-all text-xs text-slate-500">
+          sleep@example.com
+        </p>
+        <p
+          class="mt-2 inline-flex rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-700"
+        >
+          Personal account
+        </p>
+      </div>
+      <button
+        id="view-profile"
+        type="button"
+        class="mb-1 flex w-full items-center rounded-lg px-2.5 py-2 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+      >
+        View profile
+      </button>
+      <a
+        href="index-tailwind.html"
+        class="flex w-full items-center rounded-lg px-2.5 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+        >Sign out</a
+      >
+    </div>
+
+    <div class="relative z-10 min-h-screen lg:pl-[260px]">
+      <header
+        class="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl"
+      >
+        <div
+          class="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between px-4 sm:px-7 lg:px-10"
+        >
+          <div class="flex items-center gap-3">
+            <button
+              id="menu-toggle"
+              type="button"
+              class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm lg:hidden"
+              aria-label="Open navigation"
+              aria-expanded="false"
+              aria-controls="sidebar"
+            >
+              <svg
+                class="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 7h16M4 12h16M4 17h16"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+            <div>
+              <p class="text-sm font-semibold text-slate-900">
+                Good morning, Sleep
+              </p>
+              <p class="hidden text-xs text-slate-400 sm:block">
+                Here's your money at a glance.
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 sm:gap-3">
+            <span class="hidden text-xs font-medium text-slate-500 sm:inline"
+              >Personal</span
+            >
+            <button
+              type="button"
+              class="grid h-9 w-9 place-items-center rounded-full border border-white bg-indigo-100 text-xs font-bold text-indigo-700 shadow-sm ring-1 ring-slate-200"
+              aria-label="Sleep account"
+            >
+              KB
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main
+        id="overview"
+        class="mx-auto max-w-[1440px] px-4 py-7 sm:px-7 sm:py-9 lg:px-10"
+      >
+        <div id="overview-page" class="dashboard-page">
+          <div
+            class="relative isolate mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+          >
+            <canvas
+              id="sleep-well-dots"
+              class="pointer-events-none absolute left-1/2 top-1/2 z-0 hidden h-24 w-[420px] -translate-x-1/2 -translate-y-1/2 xl:block"
+              aria-hidden="true"
+            ></canvas>
+            <div class="relative z-10">
+              <p
+                id="dashboard-local-date"
+                class="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700"
+              >
+              </p>
+              <h1
+                class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+              >
+                Financial overview
+              </h1>
+            </div>
+            <div class="relative z-10 flex items-center gap-2">
+              <label for="period" class="sr-only"
+                >Select reporting period</label
+              >
+              <select
+                id="period"
+                class="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10"
+              >
+                <option value="this-month">This month</option>
+                <option value="last-month">Last month</option>
+                <option value="this-year" selected>This year</option>
+              </select>
+              <button
+                id="open-expense"
+                type="button"
+                class="inline-flex h-10 items-center gap-2 rounded-xl bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm shadow-sky-900/15 transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/25"
+              >
+                <svg
+                  class="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M10 4v12M4 10h12"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <span class="hidden sm:inline">Add expense</span>
+                <span class="sm:hidden">Add</span>
+              </button>
+            </div>
+          </div>
+
+          <nav
+            class="mb-6 flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm shadow-slate-900/[0.03]"
+            aria-label="Dashboard pages"
+          >
+            <a
+              href="#overview"
+              aria-current="page"
+              class="dashboard-tab whitespace-nowrap rounded-lg bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 shadow-sm"
+              >Overview</a
+            >
+            <a
+              href="#transactions-page"
+              class="dashboard-tab whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+              >Transactions</a
+            >
+            <a
+              href="#budgets-page"
+              class="dashboard-tab whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+              >Budgets</a
+            >
+            <a
+              href="#about-page"
+              class="dashboard-tab whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+              >About Us</a
+            >
+            <a
+              href="#reports-page"
+              class="dashboard-tab whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+              >Reports</a
+            >
+          </nav>
+
+          <section
+            class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            aria-label="Key statistics"
+          >
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03]"
+            >
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-500">Total balance</p>
+                <span
+                  class="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-sky-700"
+                >
+                  <svg
+                    class="h-[18px] w-[18px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="3.5"
+                      y="5.5"
+                      width="17"
+                      height="13"
+                      rx="2.5"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                    />
+                    <path
+                      d="M3.5 9.5h17M16 14h1.5"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+              <p id="account-balance" class="mt-4 text-2xl font-bold tracking-tight text-slate-900">
+                —
+              </p>
+              <p class="mt-2 text-xs text-slate-500">
+                <span id="balance-change" class="font-semibold text-emerald-600">—</span> from
+                last month
+              </p>
+            </article>
+
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03]"
+            >
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-500">Income</p>
+                <span
+                  class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700"
+                >
+                  <svg
+                    class="h-[18px] w-[18px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M12 19V5m0 0L6.5 10.5M12 5l5.5 5.5"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+              <p
+                id="income-total"
+                class="mt-4 text-2xl font-bold tracking-tight text-slate-900"
+              >
+                —
+              </p>
+              <p id="income-period-caption" class="mt-2 text-xs text-slate-500">
+                Loading financial data…
+              </p>
+            </article>
+
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03]"
+            >
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-500">Expenses</p>
+                <span
+                  class="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 text-rose-600"
+                >
+                  <svg
+                    class="h-[18px] w-[18px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M12 5v14m0 0 5.5-5.5M12 19l-5.5-5.5"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+              <p
+                id="expense-total"
+                class="mt-4 text-2xl font-bold tracking-tight text-slate-900"
+              >
+                —
+              </p>
+              <p
+                id="expense-period-caption"
+                class="mt-2 text-xs text-slate-500"
+              >
+                Loading financial data…
+              </p>
+            </article>
+
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03]"
+            >
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-500">Savings rate</p>
+                <span
+                  class="grid h-9 w-9 place-items-center rounded-xl bg-indigo-50 text-indigo-600"
+                >
+                  <svg
+                    class="h-[18px] w-[18px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M4 16.5 9 11l3.5 3.5L20 6.5M15 6.5h5v5"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+              <p
+                id="savings-rate"
+                class="mt-4 text-2xl font-bold tracking-tight text-slate-900"
+              >
+                —
+              </p>
+              <p
+                id="savings-period-caption"
+                class="mt-2 text-xs text-slate-500"
+              >
+                Loading financial data…
+              </p>
+            </article>
+          </section>
+
+          <section
+            id="reports-content"
+            class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.55fr_1fr]"
+            aria-label="Spending analytics"
+          >
+            <article
+              id="cash-flow-report"
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6"
+            >
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 class="text-base font-semibold text-slate-900">
+                    Cash flow
+                  </h2>
+                  <p
+                    id="cash-flow-instruction"
+                    class="mt-1 text-xs text-slate-400"
+                  >
+                    Select a month bar to explore its transactions
+                  </p>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-slate-500">
+                  <span class="flex items-center gap-1.5"
+                    ><i class="h-2 w-2 rounded-full bg-sky-500"></i>Income</span
+                  >
+                  <span class="flex items-center gap-1.5"
+                    ><i class="h-2 w-2 rounded-full bg-indigo-200"></i
+                    >Expenses</span
+                  >
+                </div>
+              </div>
+              <div
+                class="cash-flow-chart mt-7 flex h-48 items-end justify-between gap-3 border-b border-slate-100 px-1 sm:gap-5"
+              >
+                <div
+                  class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                  <div class="flex h-[80%] w-full max-w-12 items-end gap-1">
+                    <span
+                      aria-label="income"
+                      class="flex-1 cursor-help rounded-t-md bg-sky-500 transition hover:brightness-90" style="height: 0%"
+                    ></span
+                    ><span
+                      aria-label="expenses"
+                      class="flex-1 cursor-help rounded-t-md bg-indigo-100 transition hover:bg-indigo-300" style="height: 0%"
+                    ></span>
+                  </div>
+                  <span class="pb-2 text-[11px] text-slate-400">Jun</span>
+                </div>
+                <div
+                  class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                  <div class="flex h-[80%] w-full max-w-12 items-end gap-1">
+                    <span
+                      aria-label="income"
+                      class="flex-1 cursor-help rounded-t-md bg-sky-500 transition hover:brightness-90" style="height: 0%"
+                    ></span
+                    ><span
+                      aria-label="expenses"
+                      class="flex-1 cursor-help rounded-t-md bg-indigo-100 transition hover:bg-indigo-300" style="height: 0%"
+                    ></span>
+                  </div>
+                  <span class="pb-2 text-[11px] text-slate-400">Jul</span>
+                </div>
+                <div
+                  class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                  <div class="flex h-[80%] w-full max-w-12 items-end gap-1">
+                    <span
+                      aria-label="income"
+                      class="flex-1 cursor-help rounded-t-md bg-sky-500 transition hover:brightness-90" style="height: 0%"
+                    ></span
+                    ><span
+                      aria-label="expenses"
+                      class="flex-1 cursor-help rounded-t-md bg-indigo-100 transition hover:bg-indigo-300" style="height: 0%"
+                    ></span>
+                  </div>
+                  <span class="pb-2 text-[11px] text-slate-400">Aug</span>
+                </div>
+                <div
+                  class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                  <div class="flex h-[80%] w-full max-w-12 items-end gap-1">
+                    <span
+                      aria-label="income"
+                      class="flex-1 cursor-help rounded-t-md bg-sky-500 transition hover:brightness-90" style="height: 0%"
+                    >
+                    </span>
+                    <span
+                      aria-label="expenses"
+                      class="flex-1 cursor-help rounded-t-md bg-indigo-100 transition hover:bg-indigo-300" style="height: 0%"
+                    ></span>
+                  </div>
+                  <span class="pb-2 text-[11px] text-slate-400">Sep</span>
+                </div>
+                <div
+                  class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                  <div class="flex h-[80%] w-full max-w-12 items-end gap-1">
+                    <span
+                      aria-label="income"
+                      class="flex-1 cursor-help rounded-t-md bg-sky-500 transition hover:brightness-90" style="height: 0%"
+                    ></span
+                    ><span
+                      aria-label="expenses"
+                      class="flex-1 cursor-help rounded-t-md bg-indigo-100 transition hover:bg-indigo-300" style="height: 0%"
+                    ></span>
+                  </div>
+                  <span class="pb-2 text-[11px] text-slate-400">Oct</span>
+                </div>
+                <div
+                  class="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                >
+                  <div class="flex h-[80%] w-full max-w-12 items-end gap-1">
+                    <span
+                      aria-label="income"
+                      class="flex-1 cursor-help rounded-t-md bg-sky-600 transition hover:brightness-90" style="height: 0%"
+                    ></span
+                    ><span
+                      aria-label="expenses"
+                      class="flex-1 cursor-help rounded-t-md bg-indigo-300 transition hover:bg-indigo-400" style="height: 0%"
+                    ></span>
+                  </div>
+                  <span class="pb-2 text-[11px] font-semibold text-sky-700"
+                    >Nov</span
+                  >
+                </div>
+              </div>
+              <div
+                class="mt-4 flex items-center justify-between text-xs text-slate-400"
+              >
+                <span
+                  >Hover a bar for amount and share of the 6-month average</span
+                >
+                <span>Updated just now</span>
+              </div>
+            </article>
+
+            <article
+              id="budgets"
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-900/[0.03] sm:p-6"
+            >
+              <div class="flex items-start justify-between">
+                <div>
+                  <h2 class="text-base font-semibold text-slate-900">
+                    Spending by category
+                  </h2>
+                  <p class="mt-1 text-xs text-slate-400">
+                    Where your money goes
+                  </p>
+                </div>
+                <span
+                  id="category-period-label"
+                  class="rounded-lg bg-slate-50 px-2 py-1 text-xs font-medium text-slate-500"
+                  >Loading…</span
+                >
+              </div>
+              <div id="category-spending-list" class="mt-6 space-y-5"></div>
+            </article>
+          </section>
+
+          <section
+            id="transactions"
+            class="mt-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/[0.03]"
+          >
+            <div
+              class="flex items-center justify-between gap-3 px-5 py-5 sm:px-6"
+            >
+              <div>
+                <h2 class="text-base font-semibold text-slate-900">
+                  Recent transactions
+                </h2>
+                <p class="mt-1 text-xs text-slate-400">
+                  Your latest account activity
+                </p>
+              </div>
+              <a
+                href="#transactions-page"
+                class="whitespace-nowrap text-xs font-semibold text-sky-700 transition hover:text-sky-900"
+                >View all <span aria-hidden="true">→</span></a
+              >
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[620px] border-collapse text-left">
+                <thead>
+                  <tr
+                    class="border-y border-slate-100 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400"
+                  >
+                    <th class="px-6 py-3 font-semibold">Transaction</th>
+                    <th class="px-4 py-3 font-semibold">Category</th>
+                    <th class="px-4 py-3 font-semibold">Date</th>
+                    <th class="px-6 py-3 text-right font-semibold">Amount</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="transaction-list"
+                  class="divide-y divide-slate-100 text-sm"
+                ></tbody>
+              </table>
+            </div>
+            <div
+              class="border-t border-slate-100 px-6 py-3 text-xs text-slate-400"
+            >
+              Demo dashboard · sample data shown
+            </div>
+          </section>
+        </div>
+
+        <section
+          id="reports-page"
+          class="dashboard-page hidden"
+          data-fetching="true"
+          aria-labelledby="reports-heading"
+        >
+          <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700"
+              >
+                Your money, in context
+              </p>
+              <h1
+                id="reports-heading"
+                class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+              >
+                Reports
+              </h1>
+              <p class="mt-1 text-sm text-slate-500">
+                Explore cash flow and spending by category.
+              </p>
+            </div>
+            <a
+              href="#overview"
+              class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >Back to overview</a
+            >
+          </div>
+          <div id="reports-content-target"></div>
+          <section
+            id="report-month-details"
+            class="mt-5 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
+            aria-labelledby="report-table-heading"
+          >
+            <div
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4"
+            >
+              <div>
+                <h2
+                  id="report-table-heading"
+                  class="font-semibold text-slate-900"
+                  aria-live="polite"
+                >
+                  All sample transactions
+                </h2>
+                <p class="mt-1 text-xs text-slate-400">
+                  Select a month bar above to filter these details.
+                </p>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table
+                class="w-full min-w-[620px] border-collapse text-left text-sm"
+              >
+                <thead>
+                  <tr
+                    class="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400"
+                  >
+                    <th class="px-5 py-3">Transaction</th>
+                    <th class="px-5 py-3">Category</th>
+                    <th class="px-5 py-3">Date</th>
+                    <th class="px-5 py-3 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="report-transactions-list"
+                  class="divide-y divide-slate-100"
+                ></tbody>
+              </table>
+            </div>
+            <div
+              id="report-transactions-pagination"
+              class="hidden items-center justify-center gap-4 border-t border-slate-100 bg-slate-50/70 px-5 py-3 text-sm"
+              aria-label="Report table pagination"
+            ></div>
+          </section>
+        </section>
+
+        <section
+          id="transactions-page"
+          class="dashboard-page hidden"
+          data-fetching="true"
+          aria-labelledby="transactions-heading"
+        >
+          <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700"
+              >
+                Your activity
+              </p>
+              <h1
+                id="transactions-heading"
+                tabindex="-1"
+                class="mt-1 text-2xl font-bold tracking-tight text-slate-900 outline-none sm:text-3xl"
+              >
+                Transactions
+              </h1>
+              <p class="mt-1 text-sm text-slate-500">
+                A clear view of your recent income and spending.
+              </p>
+            </div>
+            <label
+              class="text-sm font-medium text-slate-500"
+              for="transaction-month-filter"
+              >Filter month
+              <select
+                id="transaction-month-filter"
+                class="ml-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/10"
+              >
+                <option value="all">All months</option>
+                <option value="Jun">June 2026</option>
+                <option value="Jul">July 2026</option>
+                <option value="Aug">August 2026</option>
+                <option value="Sep">September 2026</option>
+                <option value="Oct">October 2026</option>
+                <option value="Nov">November 2026</option>
+              </select>
+            </label>
+          </div>
+          <section
+            class="mb-5 grid gap-4 sm:grid-cols-3"
+            aria-label="Transaction summary"
+          >
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+            >
+              <p class="text-sm text-slate-500">Income in selection</p>
+              <p
+                id="transaction-income-summary"
+                class="mt-2 text-2xl font-bold text-emerald-600"
+              >
+                $0.00
+              </p>
+            </article>
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+            >
+              <p class="text-sm text-slate-500">Expenses in selection</p>
+              <p
+                id="transaction-expense-summary"
+                class="mt-2 text-2xl font-bold text-slate-900"
+              >
+                $0.00
+              </p>
+            </article>
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+            >
+              <p class="text-sm text-slate-500">Net cash flow</p>
+              <p
+                id="transaction-net-summary"
+                class="mt-2 text-2xl font-bold text-sky-700"
+              >
+                $0.00
+              </p>
+            </article>
+          </section>
+          <section
+            class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
+            aria-label="All transactions"
+          >
+            <div class="border-b border-slate-100 px-5 py-4">
+              <h2 class="font-semibold text-slate-900">Transaction history</h2>
+            </div>
+            <div class="overflow-x-auto">
+              <table
+                class="w-full min-w-[620px] border-collapse text-left text-sm"
+              >
+                <thead>
+                  <tr
+                    class="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400"
+                  >
+                    <th class="px-5 py-3">Description</th>
+                    <th class="px-5 py-3">Category</th>
+                    <th class="px-5 py-3">Date</th>
+                    <th class="px-5 py-3 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody
+                  id="all-transactions-list"
+                  class="divide-y divide-slate-100"
+                ></tbody>
+              </table>
+            </div>
+            <div
+              id="all-transactions-pagination"
+              class="hidden items-center justify-center gap-4 border-t border-slate-100 bg-slate-50/70 px-5 py-3 text-sm"
+              aria-label="Transaction table pagination"
+            ></div>
+          </section>
+          <p class="mt-4 text-xs text-slate-400">
+            Sample transaction data for this dashboard demo.
+          </p>
+        </section>
+
+        <section
+          id="budgets-page"
+          class="dashboard-page hidden"
+          data-fetching="true"
+          aria-labelledby="budgets-heading"
+        >
+          <div class="mb-6">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700"
+            >
+              Plan with confidence
+            </p>
+            <h1
+              id="budgets-heading"
+              class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+            >
+              Monthly budgets
+            </h1>
+            <p class="mt-1 text-sm text-slate-500">
+              Track category limits against your monthly plan.
+            </p>
+          </div>
+          <section
+            class="mb-5 grid gap-4 sm:grid-cols-3"
+            aria-label="Budget summary"
+          >
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+            >
+              <p class="text-sm text-slate-500">Monthly limit</p>
+              <p
+                id="budget-page-limit"
+                class="mt-2 text-2xl font-bold text-slate-900"
+              ></p>
+            </article>
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+            >
+              <p class="text-sm text-slate-500">Spent so far</p>
+              <p
+                id="budget-page-spent"
+                class="mt-2 text-2xl font-bold text-rose-600"
+              >
+                —
+              </p>
+            </article>
+            <article
+              class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+            >
+              <p class="text-sm text-slate-500">Left to spend</p>
+              <p
+                id="budget-page-remaining"
+                class="mt-2 text-2xl font-bold text-emerald-600"
+              >
+                —
+              </p>
+            </article>
+          </section>
+          <section
+            class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7"
+            aria-labelledby="category-budgets-heading"
+          >
+            <h2
+              id="category-budgets-heading"
+              class="mb-6 font-semibold text-slate-900"
+            >
+              Category budgets
+            </h2>
+            <div id="category-budget-list" class="space-y-6"></div>
+          </section>
+          <p class="mt-4 text-xs text-slate-400">
+            Category budgets are sample demo data.
+          </p>
+        </section>
+
+        <section
+          id="savings-goal-page"
+          class="dashboard-page hidden px-4 py-5 sm:px-8 sm:py-8 lg:px-12 lg:py-10"
+          data-fetching="true"
+          aria-labelledby="savings-goal-heading"
+        >
+          <div class="flex min-h-48 items-center justify-center text-sm text-slate-500">Loading savings goal...</div>
+        </section>
+
+        <section
+          id="about-page"
+          class="dashboard-page hidden px-4 py-5 sm:px-8 sm:py-8 lg:px-12 lg:py-10"
+          aria-labelledby="portfolio-heading"
+        >
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700"
+              >
+                About this workspace
+              </p>
+              <h1
+                id="portfolio-heading"
+                class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+              >
+                Sleep's portfolio
+              </h1>
+            </div>
+            <a
+              href="#overview"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+            >
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M16 10H4m0 0 5-5m-5 5 5 5"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Back to overview
+            </a>
+          </div>
+
+          <section
+            class="flex flex-col gap-8 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 px-7 py-10 text-white shadow-lg shadow-indigo-900/10 sm:px-12 sm:py-14 lg:flex-row lg:items-center lg:justify-center lg:gap-12 lg:px-14"
+            aria-label="Portfolio introduction"
+          >
+            <div class="max-w-2xl">
+              <p
+                class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-indigo-100"
+              >
+                Web Developer &amp; Designer
+              </p>
+              <h2 class="text-4xl font-bold tracking-tight sm:text-5xl">
+                Hi, I'm <span class="text-amber-300">Sleep</span>
+              </h2>
+              <p class="mt-5 max-w-2xl text-lg leading-8 text-indigo-100">
+                I create beautiful and functional websites that bring ideas to
+                life.
+              </p>
+              <a
+                href="#portfolio-projects"
+                class="mt-7 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-indigo-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-50"
+                >View my work</a
+              >
+            </div>
+            <figure
+              class="mx-auto flex w-full max-w-[220px] shrink-0 flex-col items-center lg:mx-0"
+            >
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Ben_Tennyson_%28Ben_10_2016_reboot%29.svg/500px-Ben_Tennyson_%28Ben_10_2016_reboot%29.svg.png"
+                alt="Ben Tennyson from the Ben 10 2016 reboot, shown as a sample hero image"
+                width="500"
+                height="963"
+                loading="lazy"
+                class="max-h-[300px] w-auto max-w-full object-contain drop-shadow-2xl"
+              />
+            </figure>
+          </section>
+
+          <section
+            class="py-14 sm:py-16"
+            aria-labelledby="portfolio-about-heading"
+          >
+            <div class="mx-auto max-w-3xl text-center">
+              <h2
+                id="portfolio-about-heading"
+                class="text-3xl font-bold tracking-tight text-slate-900"
+              >
+                About Me
+              </h2>
+              <p class="mt-5 text-base leading-8 text-slate-600">
+                I'm a passionate web developer with a keen eye for design and a
+                love for creating seamless user experiences. I enjoy turning
+                complex problems into simple, beautiful, and intuitive
+                solutions. When I'm not coding, I explore new technologies and
+                work on personal projects to expand my skill set.
+              </p>
+            </div>
+          </section>
+
+          <section
+            class="rounded-3xl bg-slate-50 px-5 py-12 sm:px-8"
+            aria-labelledby="portfolio-skills-heading"
+          >
+            <h2
+              id="portfolio-skills-heading"
+              class="text-center text-3xl font-bold tracking-tight text-slate-900"
+            >
+              Skills
+            </h2>
+            <div class="mt-8 grid gap-4 md:grid-cols-3">
+              <article
+                class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <h3 class="text-lg font-bold text-sky-700">Frontend</h3>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                  HTML5 &amp; CSS3<br />JavaScript<br />Responsive Design
+                </p>
+              </article>
+              <article
+                class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <h3 class="text-lg font-bold text-sky-700">Backend</h3>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                  Node.js<br />Database Management<br />API Development
+                </p>
+              </article>
+              <article
+                class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <h3 class="text-lg font-bold text-sky-700">Tools</h3>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                  Git &amp; GitHub<br />VS Code<br />Figma
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section
+            id="portfolio-projects"
+            class="py-14 sm:py-16"
+            aria-labelledby="portfolio-projects-heading"
+          >
+            <h2
+              id="portfolio-projects-heading"
+              class="text-center text-3xl font-bold tracking-tight text-slate-900"
+            >
+              My Projects
+            </h2>
+            <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <article
+                class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <h3 class="text-lg font-bold text-slate-900">
+                  Portfolio Website
+                </h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">
+                  A responsive personal portfolio website built with HTML and
+                  CSS.
+                </p>
+              </article>
+              <article
+                class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <h3 class="text-lg font-bold text-slate-900">Landing Page</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">
+                  A modern landing page for a product showcase with clean
+                  design.
+                </p>
+              </article>
+              <article
+                class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <h3 class="text-lg font-bold text-slate-900">
+                  Business Website
+                </h3>
+                <p class="mt-2 text-sm leading-6 text-slate-600">
+                  A professional business website with multiple sections and a
+                  contact form.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section
+            class="rounded-3xl bg-slate-50 px-5 py-12 text-center sm:px-8"
+            aria-labelledby="portfolio-contact-heading"
+          >
+            <h2
+              id="portfolio-contact-heading"
+              class="text-3xl font-bold tracking-tight text-slate-900"
+            >
+              Get In Touch
+            </h2>
+            <p class="mt-3 text-slate-600">
+              Feel free to reach out for collaborations or just a friendly
+              hello!
+            </p>
+            <div class="mt-6 space-y-2 text-sm text-slate-600">
+              <p>
+                <span class="font-semibold text-slate-800">Email:</span>
+                sleep@example.com
+              </p>
+              <p>
+                <span class="font-semibold text-slate-800">Phone:</span> (555)
+                987-6543
+              </p>
+              <p>
+                <span class="font-semibold text-slate-800">Location:</span>
+                Cambodia
+              </p>
+            </div>
+          </section>
+          <div class="mt-6 flex justify-center">
+            <a
+              href="#overview"
+              class="rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
+              >Return to Overview</a
+            >
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div
+      id="toast-region"
+      class="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(24rem,calc(100%-2rem))] flex-col gap-3"
+      aria-live="polite"
+      aria-relevant="additions"
+    ></div>
+
+    <button
+      id="back-to-top"
+      type="button"
+      class="invisible pointer-events-none fixed bottom-6 right-6 z-50 grid h-12 w-12 translate-y-3 place-items-center rounded-full bg-gradient-to-br from-sky-600 to-indigo-600 text-white opacity-0 shadow-lg shadow-indigo-900/25 transition duration-200 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/30"
+      aria-label="Back to top"
+      aria-hidden="true"
+      tabindex="-1"
+      title="Back to top"
+    >
+      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path
+          d="M10 16V4m0 0L5 9m5-5 5 5"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+
+    <dialog
+      id="profile-dialog"
+      class="w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-slate-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/30"
+    >
+      <div class="p-6">
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700"
+            >
+              Account profile
+            </p>
+            <h2 class="mt-1 text-lg font-bold text-slate-900">Sleep</h2>
+          </div>
+          <button
+            id="close-profile"
+            type="button"
+            class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close profile"
+          >
+            ×
+          </button>
+        </div>
+        <dl class="space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
+          <div>
+            <dt class="text-xs text-slate-400">Email</dt>
+            <dd class="mt-0.5 break-all font-medium text-slate-700">
+              sleep@example.com
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-slate-400">Account</dt>
+            <dd class="mt-0.5 font-medium text-slate-700">Personal account</dd>
+          </div>
+          <div>
+            <dt class="text-xs text-slate-400">Location</dt>
+            <dd class="mt-0.5 font-medium text-slate-700">Cambodia</dd>
+          </div>
+        </dl>
+        <div class="mt-5 flex justify-end">
+          <button
+            id="done-profile"
+            type="button"
+            class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog
+      id="expense-dialog"
+      class="fixed left-1/2 top-1/2 m-0 max-h-[calc(100%-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/30"
+    >
+      <form id="expense-form" class="p-6">
+        <div class="mb-5 flex items-start justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Add an expense</h2>
+            <p class="mt-1 text-sm text-slate-500">Record a new purchase.</p>
+          </div>
+          <button
+            id="close-expense"
+            type="button"
+            class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close dialog"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          class="mb-4 block text-sm font-medium text-slate-700"
+          for="expense-name"
+        >
+          Description
+          <input
+            id="expense-name"
+            name="name"
+            required
+            maxlength="60"
+            placeholder="e.g. Coffee with friends"
+            class="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10"
+          />
+        </label>
+        <div class="mb-5 grid grid-cols-2 gap-3">
+          <label
+            class="block text-sm font-medium text-slate-700"
+            for="expense-amount"
+          >
+            Amount
+            <input
+              id="expense-amount"
+              name="amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              required
+              placeholder="0.00"
+              class="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10"
+            />
+          </label>
+          <label
+            class="block text-sm font-medium text-slate-700"
+            for="expense-category"
+          >
+            Category
+            <select
+              id="expense-category"
+              name="category"
+              class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10"
+            >
+              <option>Food & dining</option>
+              <option>Transport</option>
+              <option>Shopping</option>
+              <option>Housing</option>
+              <option>Utilities</option>
+              <option>Other</option>
+            </select>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button
+            id="cancel-expense"
+            type="button"
+            class="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/25"
+          >
+            Save expense
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="../assets/js/savings-goal-chart.js?v=20261110-year-totals"></script>
+    <script src="../assets/js/expense-dashboard.js?v=20261110-year-totals"></script>
+  </body>
+</html>

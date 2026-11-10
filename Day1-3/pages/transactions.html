@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transactions · Ledger</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800">
+  <header class="border-b border-slate-200 bg-white"><div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4"><a href="expense-dashboard.html" class="text-lg font-bold text-slate-900">Ledger</a><nav class="flex max-w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 text-sm" aria-label="Dashboard pages"><a href="expense-dashboard.html" class="whitespace-nowrap rounded-lg px-4 py-2 font-medium text-slate-500 transition hover:bg-white hover:text-slate-900">Overview</a><a href="transactions.html" aria-current="page" class="whitespace-nowrap rounded-lg bg-white px-4 py-2 font-semibold text-sky-700 shadow-sm">Transactions</a><a href="budgets.html" class="whitespace-nowrap rounded-lg px-4 py-2 font-medium text-slate-500 transition hover:bg-white hover:text-slate-900">Budgets</a></nav></div></header>
+  <main class="mx-auto max-w-6xl px-5 py-10">
+    <div class="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-widest text-sky-700">Your activity</p><h1 class="mt-2 text-3xl font-bold text-slate-900">Transactions</h1><p class="mt-2 text-sm text-slate-500">A clear view of recent income and spending.</p></div><a href="expense-dashboard.html" class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700">← Back to overview</a></div>
+    <section class="mb-6 grid gap-4 sm:grid-cols-3" aria-label="Transaction summary"><article class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-sm text-slate-500">Income this month</p><p id="transactions-income" class="mt-2 text-2xl font-bold text-emerald-600">Loading...</p></article><article class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-sm text-slate-500">Expenses this month</p><p id="transactions-expenses" class="mt-2 text-2xl font-bold text-slate-900">Loading...</p></article><article class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-sm text-slate-500">Net cash flow</p><p id="transactions-net" class="mt-2 text-2xl font-bold text-sky-700">Loading...</p></article></section>
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div class="border-b border-slate-100 px-5 py-4"><h2 id="transactions-period" class="font-semibold text-slate-900">Loading transactions...</h2></div><div class="overflow-x-auto"><table class="w-full min-w-[600px] text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-400"><tr><th class="px-5 py-3">Description</th><th class="px-5 py-3">Category</th><th class="px-5 py-3">Date</th><th class="px-5 py-3 text-right">Amount</th></tr></thead><tbody id="transactions-table-body" class="divide-y divide-slate-100"></tbody></table></div></section>
+    <p class="mt-4 text-xs text-slate-400">Transactions load from the shared JSON data file. Expenses added in the dashboard are saved in this browser.</p>
+  </main>
+
+  <script src="../assets/js/transactions.js"></script>
+</body>
+</html>

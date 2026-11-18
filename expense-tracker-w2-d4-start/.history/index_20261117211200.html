@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expense Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.18"></script>
+  </head>
+  <body class="bg-neutral-100 text-neutral-900">
+    <header class="bg-neutral-900 p-5 text-white">
+      <h1 class="mb-1 text-2xl font-bold">Expense Tracker</h1>
+      <p>Track where your money goes</p>
+    </header>
+
+    <main class="mx-auto max-w-3xl p-5">
+      <section class="mb-6 flex flex-col gap-4 sm:flex-row">
+        <div
+          class="flex-1 border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000]"
+        >
+          <p class="mb-2 text-neutral-600">Balance</p>
+          <p class="text-2xl font-bold" id="total-money">$291.00</p>
+        </div>
+        <div
+          class="flex-1 border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000]"
+        >
+          <p class="mb-2 text-neutral-600">Income</p>
+          <p class="text-2xl font-bold text-green-700" id="income-money">
+            $300.00
+          </p>
+        </div>
+        <div
+          class="flex-1 border-2 border-black bg-white p-4 shadow-[4px_4px_0_#000]"
+        >
+          <p class="mb-2 text-neutral-600">Expenses</p>
+          <p class="text-2xl font-bold text-red-600" id="expense-money">
+            $9.00
+          </p>
+        </div>
+      </section>
+
+      <section class="mb-6">
+        <h2 class="mb-2 text-xl font-bold">Recent transactions</h2>
+        <ul id="list-container">
+          <li
+            class="mb-2 flex flex-col gap-1 border-2 border-black bg-white px-4 py-3 sm:flex-row sm:justify-between sm:gap-3"
+          >
+            <span class="flex-1 font-semibold">Salary</span>
+            <span class="text-neutral-600">Income</span>
+            <span class="font-bold text-green-700">+$300.00</span>
+          </li>
+          <li
+            class="mb-2 flex flex-col gap-1 border-2 border-black bg-white px-4 py-3 sm:flex-row sm:justify-between sm:gap-3"
+          >
+            <span class="flex-1 font-semibold">Lunch</span>
+            <span class="text-neutral-600">Food</span>
+            <span class="font-bold text-red-600">-$4.50</span>
+          </li>
+          <li
+            class="mb-2 flex flex-col gap-1 border-2 border-black bg-white px-4 py-3 sm:flex-row sm:justify-between sm:gap-3"
+          >
+            <span class="flex-1 font-semibold">Bus</span>
+            <span class="text-neutral-600">Transport</span>
+            <span class="font-bold text-red-600">-$1.50</span>
+          </li>
+          <li
+            class="mb-2 flex flex-col gap-1 border-2 border-black bg-white px-4 py-3 sm:flex-row sm:justify-between sm:gap-3"
+          >
+            <span class="flex-1 font-semibold">Notebook</span>
+            <span class="text-neutral-600">Study</span>
+            <span class="font-bold text-red-600">-$3.00</span>
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-xl font-bold">Add an expense</h2>
+        <form class="flex max-w-sm flex-col gap-2" id="input">
+          <label for="note" class="font-semibold">Note</label>
+          <input
+            id="note"
+            type="text"
+            placeholder="Lunch"
+            class="border-2 border-black bg-white p-2"
+          />
+
+          <label for="amount" class="font-semibold">Amount</label>
+          <input
+            id="amount"
+            type="number"
+            step="0.01"
+            placeholder="4.50"
+            class="border-2 border-black bg-white p-2"
+          />
+
+          <label for="category" class="font-semibold">Category</label>
+          <select id="category" class="border-2 border-black bg-white p-2">
+            <option>Food</option>
+            <option>Transport</option>
+            <option>Study</option>
+            <option>Other</option>
+          </select>
+
+          <button
+            type="submit"
+            class="mt-2 bg-neutral-900 p-2 font-semibold text-white"
+            id="Button"
+          >
+            Add
+          </button>
+        </form>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

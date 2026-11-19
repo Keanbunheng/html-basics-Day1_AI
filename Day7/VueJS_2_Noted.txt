@@ -1,0 +1,20 @@
+Cloud Diagram: Use for Build diagram from our projects.
+
+Tech: 
+	- GlitchTip use to catch the event error hz vea submit to GlitchTip.
+	- Grafana
+	- log
+	- Cloud Tunnel Desktop. yg trov berk computer jorl.
+		+ Tunnel ng vea doch plov mouy bos cloudflare del oy yg route mok server bos yg.
+	- Tempo
+	- Loki
+	- Alertmanager
+	
+Software -> yg trov tam dan, merl thae, take care, and fix bug.
+
+
+- Measure teh performance. 
+	-> tell agent to setup Grafana = as monitoring dashboard
+	
+- Self host glitchTip
+- Google docs
